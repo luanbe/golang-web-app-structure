@@ -1,6 +1,8 @@
 package delivery
 
 import (
+	"fmt"
+	"github.com/luanbe/golang-web-app-structure/app/service"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -9,13 +11,14 @@ import (
 )
 
 type UserDelivery struct {
-	Tpl helper.Template
+	Tpl     helper.Template
+	Service service.UserService
 }
 
-func NewUserDelivery(router *httprouter.Router) {
-	ud := UserDelivery{}
+func NewUserDelivery(router *httprouter.Router, s service.UserService) {
+	ud := UserDelivery{Service: s}
 	router.GET("/signup", ud.Signup)
-	// router.POST("/users", ud.New)
+	router.POST("/users", ud.NewUser)
 }
 
 func (ud UserDelivery) Signup(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -24,6 +27,15 @@ func (ud UserDelivery) Signup(w http.ResponseWriter, r *http.Request, _ httprout
 	ud.Tpl.Execute(w, nil)
 }
 
-// func (ud UserDelivery) New(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-// 	fmt.Fprint(w, "this is test new user")
-// }
+func (ud UserDelivery) NewUser(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	user := struct {
+		Email    string
+		UserName string
+	}{
+		r.FormValue("email"),
+		r.FormValue("email"),
+	}
+	result := ud.Service.AddUser(user.UserName, user.Email)
+	fmt.Fprint(w, "New user:", result)
+
+}

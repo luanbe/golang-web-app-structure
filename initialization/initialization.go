@@ -1,6 +1,7 @@
 package initialization
 
 import (
+	"github.com/luanbe/golang-web-app-structure/app/registry"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -49,11 +50,12 @@ func InitRouting(db *gorm.DB) *httprouter.Router {
 		w.WriteHeader(http.StatusNoContent)
 	})
 	// Service registry
+	userService := registry.RegisterUserService(db)
 
 	// Routing to deliveries with other paths
 	// Front End site
 	delivery.NewStaticDelivery(router)
-	delivery.NewUserDelivery(router)
+	delivery.NewUserDelivery(router, userService)
 
 	// API site
 	// deliver.NewStaticEndpointDelivery(router)
