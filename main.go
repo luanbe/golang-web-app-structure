@@ -2,8 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/julienschmidt/httprouter"
-	"github.com/luanbe/golang-web-app-structure/app/delivery"
+	"github.com/luanbe/golang-web-app-structure/initialization"
 	"github.com/spf13/viper"
 	"log"
 	"net/http"
@@ -21,13 +20,15 @@ func init() {
 	}
 }
 
-func Index(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	fmt.Fprint(w, "Welcome!\n")
-}
-
 func main() {
-	router := httprouter.New()
-	delivery.NewStaticDelivery(router)
+	// Init Db connection
+	db, err := initialization.InitDb()
+	if err != nil {
+		fmt.Errorf("error Db connection: %v", err.Error())
+		panic(err.Error())
+	}
+	router := initialization.InitRouting(db)
+
 	fmt.Printf("Server START on port%v\n", viper.GetString("server.address"))
 	log.Fatal(http.ListenAndServe(viper.GetString("server.address"), router))
 }
