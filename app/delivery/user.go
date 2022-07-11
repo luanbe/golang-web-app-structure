@@ -2,12 +2,13 @@ package delivery
 
 import (
 	"fmt"
-	"github.com/luanbe/golang-web-app-structure/app/service"
 	"net/http"
 
-	"github.com/julienschmidt/httprouter"
-	"github.com/luanbe/golang-web-app-structure/helper"
+	"github.com/go-chi/chi/v5"
+	"github.com/luanbe/golang-web-app-structure/app/service"
 	"github.com/luanbe/golang-web-app-structure/templates"
+
+	"github.com/luanbe/golang-web-app-structure/helper"
 )
 
 type UserDelivery struct {
@@ -15,19 +16,25 @@ type UserDelivery struct {
 	Service service.UserService
 }
 
-func NewUserDelivery(router *httprouter.Router, s service.UserService) {
-	ud := UserDelivery{Service: s}
-	router.GET("/signup", ud.Signup)
-	router.POST("/users", ud.NewUser)
+func NewUserDelivery(s service.UserService) *UserDelivery {
+	return &UserDelivery{Service: s}
 }
 
-func (ud UserDelivery) Signup(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (ud *UserDelivery) Routes() chi.Router {
+	r := chi.NewRouter()
+	r.Get("/signup", ud.Signup)
+	r.Post("/", ud.NewUser)
+
+	return r
+}
+
+func (ud *UserDelivery) Signup(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf8")
 	ud.Tpl = helper.TplMust(ud.Tpl.TplParseFS(templates.FS, "signup.gohtml"))
 	ud.Tpl.Execute(w, nil)
 }
 
-func (ud UserDelivery) NewUser(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (ud *UserDelivery) NewUser(w http.ResponseWriter, r *http.Request) {
 	user := struct {
 		Email    string
 		UserName string
