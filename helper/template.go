@@ -7,6 +7,10 @@ import (
 	"net/http"
 )
 
+type Template struct {
+	HTMLTpl *template.Template
+}
+
 func TplMust(t Template, err error) Template {
 	if err != nil {
 		panic(err)
@@ -14,16 +18,12 @@ func TplMust(t Template, err error) Template {
 	return t
 }
 
-func TplParseFS(fs fs.FS, patterns ...string) (Template, error) {
+func (t Template) TplParseFS(fs fs.FS, patterns ...string) (Template, error) {
 	tpl, err := template.ParseFS(fs, patterns...)
 	if err != nil {
 		return Template{}, fmt.Errorf("Parsing template error: %v \n", err)
 	}
 	return Template{tpl}, nil
-}
-
-type Template struct {
-	HTMLTpl *template.Template
 }
 
 func (t Template) Execute(w http.ResponseWriter, data interface{}) {
