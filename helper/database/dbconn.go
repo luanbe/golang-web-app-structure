@@ -2,19 +2,20 @@ package database
 
 import (
 	"fmt"
+	"time"
+
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
-	"time"
 )
 
 func NewConnectionDB(driverDB string, database string, host string, user string, password string, port int) (*gorm.DB, error) {
 	var dialect gorm.Dialector
 	gormConfig := &gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
-			SingularTable: true,
+			SingularTable: false,
 		},
 	}
 

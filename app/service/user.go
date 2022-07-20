@@ -6,7 +6,8 @@ import (
 )
 
 type UserService interface {
-	AddUser(username, email string) *entity.User
+	AddUser(username, email string) (*entity.User, error)
+	GetUser(email string) (*entity.User, error)
 }
 
 type UserServiceImpl struct {
@@ -23,15 +24,25 @@ func NewUserService(
 	return &UserServiceImpl{baseRepo, userRepo}
 }
 
-func (s *UserServiceImpl) AddUser(username, email string) *entity.User {
+func (s *UserServiceImpl) AddUser(email, password string) (*entity.User, error) {
 	s.baseRepo.BeginTx()
-	User := entity.User{
+	User := &entity.User{
 		Email:    email,
-		UserName: username,
+		Password: password,
 	}
-	result, err := s.userRepo.AddUser(&User)
+	err := s.userRepo.AddUser(User)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return result
+	return User, nil
+}
+
+func (s *UserServiceImpl) GetUser(email string) (*entity.User, error) {
+	s.baseRepo.BeginTx()
+	User := &entity.User{}
+	err := s.userRepo.GetUser(User, email)
+	if err != nil {
+		return nil, err
+	}
+	return User, nil
 }
