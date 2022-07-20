@@ -1,6 +1,8 @@
 package initialization
 
 import (
+	"encoding/gob"
+	"github.com/alexedwards/scs/v2"
 	"net/http"
 	"time"
 
@@ -8,7 +10,6 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 
 	"github.com/luanbe/golang-web-app-structure/app/delivery"
-	"github.com/luanbe/golang-web-app-structure/app/delivery/delivery_admin"
 	"github.com/luanbe/golang-web-app-structure/app/models/entity"
 	"github.com/luanbe/golang-web-app-structure/app/registry"
 	"github.com/luanbe/golang-web-app-structure/helper/database"
@@ -41,8 +42,29 @@ func InitDb() (*gorm.DB, error) {
 	return db, nil
 }
 
+// IntSessionManager function create session manager and int configuration
+// Docs: https://pkg.go.dev/github.com/alexedwards/scs#section-readme
+func IntSessionManager() *scs.SessionManager {
+	// Use Gob Register to apply User type to session manager
+	gob.Register(entity.User{})
+
+	var sessionManager *scs.SessionManager
+	// Initialize a new session manager and configure the session lifetime.
+	sessionManager = scs.New()
+	sessionManager.Lifetime = 24 * time.Hour
+	sessionManager.IdleTimeout = 20 * time.Minute
+	//sessionManager.Cookie.Name = "session_id"
+	//sessionManager.Cookie.Domain = "example.com"
+	//sessionManager.Cookie.HttpOnly = true
+	//sessionManager.Cookie.Path = "/example/"
+	//sessionManager.Cookie.Persist = true
+	//sessionManager.Cookie.SameSite = http.SameSiteStrictMode
+	sessionManager.Cookie.Secure = true
+	return sessionManager
+}
+
 // TODO: Add logger later
-func InitRouting(db *gorm.DB) *chi.Mux {
+func InitRouting(db *gorm.DB, sessionManager *scs.SessionManager) *chi.Mux {
 	r := chi.NewRouter()
 
 	// A good base middleware stack
@@ -57,7 +79,7 @@ func InitRouting(db *gorm.DB) *chi.Mux {
 	r.Use(middleware.Timeout(60 * time.Second))
 
 	r.Mount("/", fontEndRouter(db))
-	r.Mount("/admin", adminRouter(db))
+	r.Mount("/admin", adminRouter(db, sessionManager))
 
 	return r
 }
@@ -75,26 +97,21 @@ func fontEndRouter(db *gorm.DB) http.Handler {
 	return r
 }
 
-func adminRouter(db *gorm.DB) http.Handler {
-	r := chi.NewRouter()
-	r.Use(AdminOnly)
-	indexAdmin := delivery_admin.NewIndexAdminDelivery()
-	r.Mount("/", indexAdmin.Routes())
+func adminRouter(db *gorm.DB, sessionManager *scs.SessionManager) http.Handler {
+	// Services registry
+	userService := registry.RegisterUserService(db)
 
-	userAdmin := delivery_admin.NewUserAdminDelivery()
-	r.Mount("/users", userAdmin.Routes())
+	// Middlewares registry
+	adminMiddleware := registry.RegisterAdminMiddleware(sessionManager)
+
+	// Deliveries registry
+	indexAdminDelivery := registry.RegisterIndexAdminDelivery(userService, sessionManager)
+	userAdminDelivery := registry.RegisterUserAdminDelivery(userService, sessionManager)
+
+	r := chi.NewRouter()
+	r.Use(middleware.SetHeader("Content-Type", "text/html; charset=utf-8"))
+	r.Mount("/", indexAdminDelivery.Routes(adminMiddleware))
+	r.With(adminMiddleware.UserAuth).Mount("/users", userAdminDelivery.Routes())
 
 	return r
-}
-
-func AdminOnly(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		isAdmin, ok := ctx.Value("acl.admin").(bool)
-		if !ok || !isAdmin {
-			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
 }

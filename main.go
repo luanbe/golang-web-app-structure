@@ -27,8 +27,16 @@ func main() {
 		fmt.Errorf("error Db connection: %v", err.Error())
 		panic(err.Error())
 	}
-	router := initialization.InitRouting(db)
+
+	// Int Session Manager
+	sessionManager := initialization.IntSessionManager()
+
+	// Int Router
+	router := initialization.InitRouting(db, sessionManager)
 
 	fmt.Printf("Server START on port%v\n", viper.GetString("server.address"))
-	log.Fatal(http.ListenAndServe(viper.GetString("server.address"), router))
+	log.Fatal(http.ListenAndServe(
+		viper.GetString("server.address"),
+		sessionManager.LoadAndSave(router),
+	))
 }

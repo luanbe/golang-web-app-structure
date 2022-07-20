@@ -1,6 +1,8 @@
 package delivery_admin
 
 import (
+	"github.com/alexedwards/scs/v2"
+	"github.com/luanbe/golang-web-app-structure/app/service"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -9,11 +11,16 @@ import (
 )
 
 type UserAdminDelivery struct {
-	tpl helper.Template
+	tpl            helper.Template
+	SessionManager *scs.SessionManager
+	UserService    service.UserService
 }
 
-func NewUserAdminDelivery() *UserAdminDelivery {
-	return &UserAdminDelivery{}
+func NewUserAdminDelivery(userService service.UserService, sessionManager *scs.SessionManager) *UserAdminDelivery {
+	return &UserAdminDelivery{
+		UserService:    userService,
+		SessionManager: sessionManager,
+	}
 }
 
 func (uad *UserAdminDelivery) Routes() chi.Router {
@@ -24,6 +31,7 @@ func (uad *UserAdminDelivery) Routes() chi.Router {
 }
 
 func (uad *UserAdminDelivery) NewUser(w http.ResponseWriter, r *http.Request) {
+
 	uad.tpl = helper.TplMust(uad.tpl.TplParseFS(templates.FS, "admin/user/user_add.gohtml"))
 	uad.tpl.Execute(w, nil)
 }
